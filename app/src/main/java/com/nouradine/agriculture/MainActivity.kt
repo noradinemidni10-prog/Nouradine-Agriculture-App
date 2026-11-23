@@ -163,7 +163,27 @@ class MainActivity:ComponentActivity(){
 
 @Composable private fun SoilPage(){Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text("التربة والأراضي",fontSize=21.sp,fontWeight=FontWeight.Bold,color=Forest);InfoBlock("التربة الرملية","تصريف سريع واحتفاظ أقل بالماء والعناصر غالباً؛ تساعد المادة العضوية والري المدروس.");InfoBlock("التربة الطينية","احتفاظ أعلى بالماء والعناصر وقد تتعرض للتغريق والانضغاط؛ حسّن الصرف وتجنب العمل وهي شديدة البلل.");InfoBlock("التربة الطميية","متوازنة نسبياً في الصرف والاحتفاظ بالماء، لكنها تحتاج تحليلاً لتحديد الخصوبة.");InfoBlock("تحاليل مهمة","درجة الحموضة pH، الملوحة EC، المادة العضوية، والآزوت والفوسفور والبوتاسيوم والعناصر الصغرى.");InfoBlock("قاعدة أساسية","لا تحدد صلاحية الأرض أو جرعة السماد من اللون أو الملمس وحدهما؛ اعتمد عينة ممثلة وتحليلاً مخبرياً.")}}
 
-@Composable private fun FertilizerPage(){Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text("الأسمدة والمبيدات",fontSize=21.sp,fontWeight=FontWeight.Bold,color=Forest);InfoBlock("الأسمدة العضوية","السماد العضوي المتحلل يحسن بنية التربة ومادتها العضوية. تجنب الروث الطازج قرب المحاصيل الحساسة.");InfoBlock("الأسمدة المعدنية","اختر التركيبة وفق تحليل التربة واحتياجات المحصول ومرحلة النمو، ولا تخلط المنتجات دون التحقق من التوافق.");InfoBlock("المبيدات","استخدم منتجاً مسجلاً للمحصول والآفة في بلدك، والتزم بالجرعة وفترة ما قبل الحصاد وفترة إعادة الدخول على الملصق.");InfoBlock("معدات الوقاية","ارتدِ معدات الوقاية المحددة على الملصق، وتجنب الرش مع الرياح أو قرب المياه والأطفال والحيوانات.");Text("لا يقدم التطبيق جرعات مبيدات أو خلطات علاجية عشوائية. ارجع إلى الملصق الرسمي والمهندس الزراعي المحلي.",color=Color(0xFF9B3F20),fontWeight=FontWeight.SemiBold)}}
+@Composable private fun FertilizerPage(){
+ var area by remember{mutableStateOf("1")}
+ var rate by remember{mutableStateOf("60")}
+ var result by remember{mutableStateOf("")}
+ Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+  Text("حاسبة كمية السماد",fontSize=21.sp,fontWeight=FontWeight.Bold,color=Forest)
+  Text("احسب كمية المنتج المطلوبة انطلاقاً من جرعة موصى بها مسبقاً في تحليل التربة أو من مهندس زراعي.")
+  OutlinedTextField(area,{area=it},label={Text("مساحة الحقل (هكتار)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(rate,{rate=it},label={Text("الجرعة الموصى بها (كغ منتج/هكتار)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth())
+  Button(onClick={
+   val a=area.replace(',','.').toDoubleOrNull()
+   val r=rate.replace(',','.').toDoubleOrNull()
+   val total=if(a!=null&&r!=null)AgricultureCalculations.fertilizerProductKilograms(a,r) else null
+   val bags=total?.let{AgricultureCalculations.fertilizerBagsRequired(it)}
+   result=if(total!=null&&bags!=null)"الكمية الإجمالية: %.2f كغ من المنتج\nأكياس 50 كغ: %d كيساً".format(total,bags) else "أدخل قيماً صحيحة أكبر من الصفر."
+  },modifier=Modifier.fillMaxWidth()){Text("احسب كمية السماد")}
+  if(result.isNotBlank())Card(colors=CardDefaults.cardColors(containerColor=Color.White)){Text(result,Modifier.padding(16.dp),fontWeight=FontWeight.Bold,color=Forest,lineHeight=25.sp)}
+  InfoBlock("تنبيه مهم","هذه الحاسبة تحسب وزن المنتج فقط ولا تقترح جرعة تسميد. أدخل الجرعة التي حددها تحليل التربة أو المختص، وتحقق من تركيز المنتج وملصقه وطريقة التطبيق.")
+  InfoBlock("سلامة المبيدات","استخدم فقط منتجاً مسجلاً للمحصول والآفة، واتبع الملصق وفترات ما قبل الحصاد وإعادة الدخول ومعدات الوقاية. لا تخلط المنتجات دون تحقق من التوافق.")
+ }
+}
 
 @Composable private fun IrrigationPage(){
  var area by remember{mutableStateOf("1")};var depth by remember{mutableStateOf("10")};var result by remember{mutableStateOf("")}
