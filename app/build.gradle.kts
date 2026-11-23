@@ -15,7 +15,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         val assistantApiBaseUrl = providers.gradleProperty("nouradineApiBaseUrl").orElse("").get()
-        buildConfigField("String", "ASSISTANT_API_BASE_URL", "\\\"$assistantApiBaseUrl\\\"")
+        buildConfigField("String", "ASSISTANT_API_BASE_URL", "\"$assistantApiBaseUrl\"")
     }
 
     buildFeatures { compose = true; buildConfig = true }
