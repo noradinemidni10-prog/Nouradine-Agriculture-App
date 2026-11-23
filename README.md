@@ -34,3 +34,8 @@
 - جرعات الأسمدة والمبيدات يجب أن تستند إلى تحليل التربة وملصق المنتج المسجل محلياً وإرشاد مختص.
 - بيانات الطقس ليست بديلاً عن تنبيهات الجهات الرسمية.
 - هذه نسخة تطويرية وليست إصداراً إنتاجياً مكتملاً.
+
+
+## Nouradine Agriculture v2 rebuild
+
+This branch contains the redesigned Android application experience. Changes are validated with unit tests, Android Lint, and a debug APK build in GitHub Actions. Features that require cloud AI, accounts, or payment infrastructure are explicitly marked as not yet connected.
