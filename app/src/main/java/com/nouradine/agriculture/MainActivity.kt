@@ -144,13 +144,43 @@ class MainActivity:ComponentActivity(){
  Column(Modifier.fillMaxSize().padding(16.dp)){Text("الأدوات الزراعية",fontSize=23.sp,fontWeight=FontWeight.Bold,color=Green);Spacer(Modifier.height(12.dp));pages.forEach{p->Card(Modifier.fillMaxWidth().padding(bottom=9.dp).clickable{go(p)},colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(16.dp)){Row(Modifier.padding(17.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Build,null,tint=Green);Spacer(Modifier.width(12.dp));Text(p,Modifier.weight(1f),fontWeight=FontWeight.SemiBold);Icon(Icons.Default.ChevronLeft,null,tint=Muted)}}}}
 }
 @Composable private fun AssistantPage(speak:(String)->Unit){
- var question by remember{mutableStateOf("")};var answer by remember{mutableStateOf("اسأل عن محصول أو تربة أو ري أو تسميد. سأوضح الإرشادات الأولية وحدود المعلومات المتاحة.")}
- val launcher=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){r->r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let{question=it;answer=answerFor(it);speak(answer)}}
- Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-  Card(colors=CardDefaults.cardColors(containerColor=Green),shape=RoundedCornerShape(22.dp)){Column(Modifier.padding(18.dp)){Text("مساعد نورالدين",fontSize=21.sp,fontWeight=FontWeight.Bold,color=Color.White);Text("مساعد إرشادي محلي",color=Lime,fontSize=12.sp);Spacer(Modifier.height(12.dp));Text(answer,color=Color.White,lineHeight=25.sp);TextButton(onClick={speak(answer)}){Icon(Icons.Default.VolumeUp,null,tint=Color.White);Text("استمع للإجابة",color=Color.White)}}}
-  OutlinedTextField(question,{question=it},modifier=Modifier.fillMaxWidth(),label={Text("اكتب سؤالك هنا")},minLines=3)
-  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={answer=answerFor(question)},modifier=Modifier.weight(1f)){Icon(Icons.Default.Send,null);Text("إرسال")};OutlinedButton(onClick={val intent=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply{putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ar-DZ")};try{launcher.launch(intent)}catch(_:Exception){answer="خدمة التعرف الصوتي غير متاحة على هذا الجهاز."}}){Icon(Icons.Default.Mic,null);Text("تحدث")}}
-  Text("قاعدة إرشادية داخلية وليست نموذج ذكاء اصطناعي متصلاً أو تشخيصاً مخبرياً.",fontSize=12.sp,color=Muted)
+ var question by remember{mutableStateOf("")};var loading by remember{mutableStateOf(false)}
+ var responseId by remember{mutableStateOf<String?>(null)}
+ val messages=remember{mutableStateListOf<Pair<Boolean,String>>() }
+ val launcher=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){r->r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let{question=it}}
+ Column(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+  Row(verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("مساعد نورالدين",fontSize=22.sp,fontWeight=FontWeight.Bold,color=Green);Text("محادثة زراعية ذكية",fontSize=12.sp,color=Muted)};TextButton(onClick={messages.clear();responseId=null}){Text("محادثة جديدة")}}
+  if(BuildConfig.ASSISTANT_API_BASE_URL.isBlank()){
+   InfoCard("المساعد الذكي غير موصول بعد","تم تجهيز واجهة الربط الآمن، لكن يجب نشر خادم backend وضبط عنوانه قبل أن تصل الأسئلة إلى نموذج الذكاء الاصطناعي. لن أعرض إجابات محلية على أنها ذكاء اصطناعي.")
+  }
+  LazyColumn(Modifier.weight(1f,true),verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(vertical=6.dp)){
+   if(messages.isEmpty()) item { InfoCard("ابدأ سؤالك","مثال: أوراق الطماطم تلتف إلى الأعلى مع بقع صفراء. ما المعلومات التي تحتاجها لتحديد الاحتمالات؟") }
+   items(messages){item->Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=if(item.first)Color(0xFFE7F0E5) else Color.White)){Column(Modifier.padding(13.dp)){Text(if(item.first)"أنت" else "نورالدين",fontSize=11.sp,fontWeight=FontWeight.Bold,color=Green);Spacer(Modifier.height(4.dp));Text(item.second,color=TextDark,lineHeight=23.sp);if(!item.first)TextButton(onClick={speak(item.second)}){Icon(Icons.Default.VolumeUp,null);Text("استمع")}}} }
+   if(loading)item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.Center){CircularProgressIndicator(Modifier.size(24.dp),strokeWidth=2.dp);Text("  نورالدين يكتب الإجابة...",color=Muted)} }
+  }
+  OutlinedTextField(question,{question=it},modifier=Modifier.fillMaxWidth(),label={Text("اكتب سؤالك الزراعي...")},minLines=2,maxLines=5)
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   OutlinedButton(enabled=!loading,onClick={val intent=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply{putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ar-DZ")};try{launcher.launch(intent)}catch(_:Exception){messages.add(false,"التعرف الصوتي غير متاح على هذا الجهاز.")}},modifier=Modifier.weight(0.8f)){Icon(Icons.Default.Mic,null);Text("صوت")}
+   Button(enabled=!loading&&question.isNotBlank()&&BuildConfig.ASSISTANT_API_BASE_URL.isNotBlank(),onClick={
+    val prompt=question.trim();question="";messages.add(true,prompt);loading=true
+    thread {
+     var resultText:String
+     var newId:String?=null
+     try {
+      val base=BuildConfig.ASSISTANT_API_BASE_URL.trimEnd('/')
+      val connection=(URL("$base/v1/assistant/respond").openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=10000;readTimeout=60000;doOutput=true;setRequestProperty("Content-Type","application/json; charset=utf-8");setRequestProperty("Accept","application/json")}
+      val payload=JSONObject().put("message",prompt);responseId?.let{payload.put("previous_response_id",it)}
+      connection.outputStream.use{it.write(payload.toString().toByteArray(Charsets.UTF_8))}
+      val code=connection.responseCode;val stream=if(code in 200..299)connection.inputStream else connection.errorStream
+      val body=stream?.bufferedReader()?.use{it.readText()}?: "{}";connection.disconnect()
+      val json=JSONObject(body);if(code !in 200..299)throw IllegalStateException(json.optString("error","تعذر الاتصال بالخادم (HTTP $code)."))
+      resultText=json.optString("answer","").ifBlank{throw IllegalStateException("وصل رد فارغ من الخادم.")};newId=json.optString("response_id").takeIf{it.isNotBlank()}
+     } catch(e:Exception){resultText="تعذر الحصول على إجابة: ${e.message?: "تحقق من الإنترنت وإعداد الخادم."}"}
+     android.os.Handler(android.os.Looper.getMainLooper()).post{if(newId!=null)responseId=newId;messages.add(false,resultText);loading=false}
+    }
+   },modifier=Modifier.weight(1.2f)){Icon(Icons.Default.Send,null);Text("إرسال")}
+  }
+  Text("الإجابات الذكية تتطلب اتصال الإنترنت وخادم التطبيق المنشور.",fontSize=11.sp,color=Muted)
  }
 }
 private fun answerFor(raw:String):String{val q=raw.trim();return when{
