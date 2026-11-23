@@ -160,23 +160,23 @@ class MainActivity:ComponentActivity(){
   }
   OutlinedTextField(question,{question=it},modifier=Modifier.fillMaxWidth(),label={Text("اكتب سؤالك الزراعي...")},minLines=2,maxLines=5)
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-   OutlinedButton(enabled=!loading,onClick={val intent=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply{putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ar-DZ")};try{launcher.launch(intent)}catch(_:Exception){messages.add(false,"التعرف الصوتي غير متاح على هذا الجهاز.")}},modifier=Modifier.weight(0.8f)){Icon(Icons.Default.Mic,null);Text("صوت")}
+   OutlinedButton(enabled=!loading,onClick={val intent=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply{putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ar-DZ")};try{launcher.launch(intent)}catch(_:Exception){messages.add(false to "التعرف الصوتي غير متاح على هذا الجهاز.")}},modifier=Modifier.weight(0.8f)){Icon(Icons.Default.Mic,null);Text("صوت")}
    Button(enabled=!loading&&question.isNotBlank()&&BuildConfig.ASSISTANT_API_BASE_URL.isNotBlank(),onClick={
-    val prompt=question.trim();question="";messages.add(true,prompt);loading=true
+    val prompt=question.trim();question="";messages.add(true to prompt);loading=true;val priorResponseId=responseId
     thread {
      var resultText:String
      var newId:String?=null
      try {
       val base=BuildConfig.ASSISTANT_API_BASE_URL.trimEnd('/')
       val connection=(URL("$base/v1/assistant/respond").openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=10000;readTimeout=60000;doOutput=true;setRequestProperty("Content-Type","application/json; charset=utf-8");setRequestProperty("Accept","application/json")}
-      val payload=JSONObject().put("message",prompt);responseId?.let{payload.put("previous_response_id",it)}
+      val payload=JSONObject().put("message",prompt);priorResponseId?.let{payload.put("previous_response_id",it)}
       connection.outputStream.use{it.write(payload.toString().toByteArray(Charsets.UTF_8))}
       val code=connection.responseCode;val stream=if(code in 200..299)connection.inputStream else connection.errorStream
       val body=stream?.bufferedReader()?.use{it.readText()}?: "{}";connection.disconnect()
       val json=JSONObject(body);if(code !in 200..299)throw IllegalStateException(json.optString("error","تعذر الاتصال بالخادم (HTTP $code)."))
       resultText=json.optString("answer","").ifBlank{throw IllegalStateException("وصل رد فارغ من الخادم.")};newId=json.optString("response_id").takeIf{it.isNotBlank()}
      } catch(e:Exception){resultText="تعذر الحصول على إجابة: ${e.message?: "تحقق من الإنترنت وإعداد الخادم."}"}
-     android.os.Handler(android.os.Looper.getMainLooper()).post{if(newId!=null)responseId=newId;messages.add(false,resultText);loading=false}
+     android.os.Handler(android.os.Looper.getMainLooper()).post{if(newId!=null)responseId=newId;messages.add(false to resultText);loading=false}
     }
    },modifier=Modifier.weight(1.2f)){Icon(Icons.Default.Send,null);Text("إرسال")}
   }
