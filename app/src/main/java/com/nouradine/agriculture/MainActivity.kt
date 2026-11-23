@@ -117,23 +117,29 @@ class MainActivity:ComponentActivity(){
 @Composable private fun AssistantPage(speak:(String)->Unit){
  var question by remember{mutableStateOf("")}
  var answer by remember{mutableStateOf("أهلاً بك. اكتب سؤالك الزراعي وسأعرض إرشادات أولية من قاعدة المعرفة المحلية.")}
- val launcher=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){r->question=r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()}
+ val launcher=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){r->val recognized=r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty();question=recognized;if(recognized.isNotBlank()){answer=localAgricultureAnswer(recognized);speak(answer)}}
  Column(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   Card(colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.padding(16.dp)){Text("المساعد الزراعي نورالدين",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Forest);Text(answer,color=Ink,lineHeight=24.sp);TextButton(onClick={speak(answer)}){Icon(Icons.Default.VolumeUp,null);Text("استمع إلى الإجابة")}}}
   OutlinedTextField(question,{question=it},modifier=Modifier.fillMaxWidth(),label={Text("اكتب سؤالك الزراعي")},minLines=2)
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-   Button(onClick={val q=question.trim();answer=when{
-    q.isBlank()->"اكتب سؤالاً أولاً."
-    q.contains("طماطم")||q.contains("بندورة")->"للطماطم: وفر تربة جيدة الصرف ورياً منتظماً دون تغريق، وراقب اللفحة والذبابة البيضاء. حدد الأعراض والمنطقة لتوجيه أدق."
-    q.contains("قمح")->"القمح يحتاج متابعة الرطوبة خصوصاً الاستطالة وطرد السنابل، مع مراقبة الصدأ والأعشاب. اضبط السماد وفق تحليل التربة."
-    q.contains("اصفرار")||q.contains("أصفر")->"الاصفرار قد ينتج عن نقص عناصر أو زيادة ري أو ملوحة أو مرض جذري. افحص نمطه والرطوبة والجذور قبل إضافة السماد."
-    q.contains("ري")||q.contains("ماء")->"اضبط الري حسب نوع التربة والطقس وعمر النبات. افحص رطوبة منطقة الجذور وتجنب التغريق؛ لا توجد كمية واحدة تناسب كل الحقول."
-    q.contains("سماد")->"لا تضف جرعة عشوائية. اعتمد تحليل التربة واحتياجات المحصول ومرحلة النمو واتبع ملصق المنتج."
-    else->"أحتاج تفاصيل أكثر: اسم المحصول، المنطقة، عمر النبات، الأعراض وطريقة الري. هذه إرشادات محلية أولية وليست تشخيصاً آلياً أو إجابة ذكاء اصطناعي متصلة بالإنترنت."
-   }},modifier=Modifier.weight(1f)){Icon(Icons.Default.Send,null);Text("إرسال")}
+   Button(onClick={answer=localAgricultureAnswer(question)},modifier=Modifier.weight(1f)){Icon(Icons.Default.Send,null);Text("إرسال")}
    OutlinedButton(onClick={val i=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply{putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ar-DZ");putExtra(RecognizerIntent.EXTRA_PROMPT,"تحدث عن سؤالك الزراعي")};try{launcher.launch(i)}catch(_:Exception){question="ميزة التعرف الصوتي غير متاحة على الجهاز."}}){Icon(Icons.Default.Mic,null)}
   }
   Text("قاعدة إرشادية محلية أولية؛ لم يتم ربط نموذج ذكاء اصطناعي سحابي بعد.",fontSize=12.sp,color=Color.Gray)
+ }
+}
+
+
+private fun localAgricultureAnswer(question:String):String {
+ val q=question.trim()
+ return when {
+  q.isBlank()->"اكتب سؤالاً أولاً."
+  q.contains("طماطم")||q.contains("بندورة")->"للطماطم: وفر تربة جيدة الصرف ورياً منتظماً دون تغريق، وراقب اللفحة والذبابة البيضاء. حدد الأعراض والمنطقة لتوجيه أدق."
+  q.contains("قمح")->"القمح يحتاج متابعة الرطوبة خصوصاً الاستطالة وطرد السنابل، مع مراقبة الصدأ والأعشاب. اضبط السماد وفق تحليل التربة."
+  q.contains("اصفرار")||q.contains("أصفر")->"الاصفرار قد ينتج عن نقص عناصر أو زيادة ري أو ملوحة أو مرض جذري. افحص نمطه والرطوبة والجذور قبل إضافة السماد."
+  q.contains("ري")||q.contains("ماء")->"اضبط الري حسب نوع التربة والطقس وعمر النبات. افحص رطوبة منطقة الجذور وتجنب التغريق؛ لا توجد كمية واحدة تناسب كل الحقول."
+  q.contains("سماد")->"لا تضف جرعة عشوائية. اعتمد تحليل التربة واحتياجات المحصول ومرحلة النمو واتبع ملصق المنتج."
+  else->"أحتاج تفاصيل أكثر: اسم المحصول، المنطقة، عمر النبات، الأعراض وطريقة الري. هذه إرشادات محلية أولية وليست تشخيصاً آلياً أو إجابة ذكاء اصطناعي متصلة بالإنترنت."
  }
 }
 
