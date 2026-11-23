@@ -3,7 +3,7 @@ name: بناء واختبار تطبيق أندرويد
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "v2-professional-rebuild"]
   pull_request:
 
 permissions:
