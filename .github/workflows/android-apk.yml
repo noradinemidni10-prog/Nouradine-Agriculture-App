@@ -28,7 +28,9 @@ jobs:
           gradle-version: "8.7"
 
       - name: اختبارات الوحدة وفحص Android Lint وبناء APK
-        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+        env:
+          NOURADINE_API_BASE_URL: ${{ vars.NOURADINE_API_BASE_URL }}
+        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug -PnouradineApiBaseUrl="$NOURADINE_API_BASE_URL"
 
       - name: حفظ تقارير الاختبار والفحص
         if: always()
@@ -46,3 +48,20 @@ jobs:
           name: Nouradine-Agriculture-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  verify-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install backend dependencies
+        run: npm install --ignore-scripts
+      - name: Check backend syntax
+        run: npm run check
